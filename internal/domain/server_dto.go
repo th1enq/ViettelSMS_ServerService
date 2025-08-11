@@ -11,12 +11,12 @@ type (
 	}
 
 	UpdateServerParams struct {
-		ServerID    string `json:"server_id"`
-		ServerName  string `json:"server_name"`
-		IPv4        string `json:"ipv4"`
-		Location    string `json:"location"`
-		OS          string `json:"os"`
-		IntevalTime int64  `json:"interval_time"`
+		ServerID     string `json:"server_id"`
+		ServerName   string `json:"server_name"`
+		IPv4         string `json:"ipv4"`
+		Location     string `json:"location"`
+		OS           string `json:"os"`
+		IntervalTime uint64 `json:"interval_time"`
 	}
 
 	ServerFilterOptions struct {

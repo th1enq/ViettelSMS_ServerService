@@ -9,6 +9,7 @@ package app
 import (
 	"github.com/th1enq/ViettelSMS_ServerService/internal/app/router"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/configs"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/domain"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/repository"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/usecases/server"
 	"github.com/th1enq/ViettelSMS_ServerService/pkg/log"
@@ -28,7 +29,8 @@ func InitApp(cfg *configs.Config, grpcServer *grpc.Server) (*App, error) {
 		return nil, err
 	}
 	serverRepository := repository.NewServerRepository(dbEngine)
-	useCase := server.NewService(serverRepository, logger)
+	xlsxService := domain.NewExcelizeService(logger)
+	useCase := server.NewService(serverRepository, xlsxService, logger)
 	serverServiceServer := router.NewGRPCServerServer(grpcServer, useCase, logger)
 	app := New(cfg, useCase, serverServiceServer)
 	return app, nil

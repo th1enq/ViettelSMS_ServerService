@@ -3,12 +3,11 @@ CREATE TYPE server_status AS ENUM ('UNKNOWN', 'ONLINE', 'OFFLINE');
 
 CREATE TABLE servers (
     server_id VARCHAR(32) PRIMARY KEY,
-    server_name VARCHAR(64) NOT NULL,
+    server_name VARCHAR(64) UNIQUE NOT NULL,
     status server_status NOT NULL DEFAULT 'UNKNOWN',
     ipv4 VARCHAR(15) NOT NULL,
-    description TEXT,
-    location VARCHAR(128) NOT NULL,
-    os VARCHAR(32) NOT NULL,
+    location VARCHAR(128),
+    os VARCHAR(32),
     interval_time BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL

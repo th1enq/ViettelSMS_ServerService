@@ -27,22 +27,22 @@ const (
 type ServerStatus int32
 
 const (
-	ServerStatus_SERVER_STATUS_UNKNOWN ServerStatus = 0
-	ServerStatus_SERVER_STATUS_ONLINE  ServerStatus = 1
-	ServerStatus_SERVER_STATUS_OFFLINE ServerStatus = 2
+	ServerStatus_UNKNOWN ServerStatus = 0
+	ServerStatus_ONLINE  ServerStatus = 1
+	ServerStatus_OFFLINE ServerStatus = 2
 )
 
 // Enum value maps for ServerStatus.
 var (
 	ServerStatus_name = map[int32]string{
-		0: "SERVER_STATUS_UNKNOWN",
-		1: "SERVER_STATUS_ONLINE",
-		2: "SERVER_STATUS_OFFLINE",
+		0: "UNKNOWN",
+		1: "ONLINE",
+		2: "OFFLINE",
 	}
 	ServerStatus_value = map[string]int32{
-		"SERVER_STATUS_UNKNOWN": 0,
-		"SERVER_STATUS_ONLINE":  1,
-		"SERVER_STATUS_OFFLINE": 2,
+		"UNKNOWN": 0,
+		"ONLINE":  1,
+		"OFFLINE": 2,
 	}
 )
 
@@ -135,7 +135,7 @@ func (x *Server) GetStatus() ServerStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ServerStatus_SERVER_STATUS_UNKNOWN
+	return ServerStatus_UNKNOWN
 }
 
 func (x *Server) GetIpv4() string {
@@ -260,6 +260,7 @@ func (x *CreateServerRequest) GetIntervalCheckTime() uint64 {
 type CreateServerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Server        *Server                `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -299,6 +300,13 @@ func (x *CreateServerResponse) GetServer() *Server {
 		return x.Server
 	}
 	return nil
+}
+
+func (x *CreateServerResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 type UpdateServerRequest struct {
@@ -387,7 +395,7 @@ func (x *UpdateServerRequest) GetIntervalCheckTime() uint64 {
 
 type UpdateServerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Server        *Server                `protobuf:"bytes,1,opt,name=server,proto3" json:"server,omitempty"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -422,11 +430,11 @@ func (*UpdateServerResponse) Descriptor() ([]byte, []int) {
 	return file_server_service_v1_server_service_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *UpdateServerResponse) GetServer() *Server {
+func (x *UpdateServerResponse) GetMessage() string {
 	if x != nil {
-		return x.Server
+		return x.Message
 	}
-	return nil
+	return ""
 }
 
 type DeleteServerRequest struct {
@@ -475,6 +483,7 @@ func (x *DeleteServerRequest) GetServerId() string {
 
 type DeleteServerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -507,6 +516,13 @@ func (x *DeleteServerResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteServerResponse.ProtoReflect.Descriptor instead.
 func (*DeleteServerResponse) Descriptor() ([]byte, []int) {
 	return file_server_service_v1_server_service_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *DeleteServerResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 type ViewServerFilterOptions struct {
@@ -558,7 +574,7 @@ func (x *ViewServerFilterOptions) GetStatus() ServerStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ServerStatus_SERVER_STATUS_UNKNOWN
+	return ServerStatus_UNKNOWN
 }
 
 type ViewServerPaginationOptions struct {
@@ -685,6 +701,7 @@ type ViewServerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Servers       []*Server              `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
 	TotalCount    int32                  `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -733,12 +750,20 @@ func (x *ViewServerResponse) GetTotalCount() int32 {
 	return 0
 }
 
+func (x *ViewServerResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 type ImportServerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SuccessCount  uint32                 `protobuf:"varint,1,opt,name=success_count,json=successCount,proto3" json:"success_count,omitempty"`
 	SuccessIds    []string               `protobuf:"bytes,2,rep,name=success_ids,json=successIds,proto3" json:"success_ids,omitempty"`
 	FailureCount  uint32                 `protobuf:"varint,3,opt,name=failure_count,json=failureCount,proto3" json:"failure_count,omitempty"`
 	FailureIds    []string               `protobuf:"bytes,4,rep,name=failure_ids,json=failureIds,proto3" json:"failure_ids,omitempty"`
+	Message       string                 `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -801,6 +826,13 @@ func (x *ImportServerResponse) GetFailureIds() []string {
 	return nil
 }
 
+func (x *ImportServerResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 type ExportServerRequest struct {
 	state         protoimpl.MessageState       `protogen:"open.v1"`
 	Filter        *ViewServerFilterOptions     `protobuf:"bytes,1,opt,name=filter,proto3" json:"filter,omitempty"`
@@ -856,6 +888,7 @@ func (x *ExportServerRequest) GetPagination() *ViewServerPaginationOptions {
 type ExportServerResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Servers       []*Server              `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -897,6 +930,13 @@ func (x *ExportServerResponse) GetServers() []*Server {
 	return nil
 }
 
+func (x *ExportServerResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_server_service_v1_server_service_proto protoreflect.FileDescriptor
 
 const file_server_service_v1_server_service_proto_rawDesc = "" +
@@ -920,9 +960,10 @@ const file_server_service_v1_server_service_proto_rawDesc = "" +
 	"\x04ipv4\x18\x03 \x01(\tR\x04ipv4\x12\x1a\n" +
 	"\blocation\x18\x04 \x01(\tR\blocation\x12\x0e\n" +
 	"\x02os\x18\x05 \x01(\tR\x02os\x12.\n" +
-	"\x13interval_check_time\x18\x06 \x01(\x04R\x11intervalCheckTime\"7\n" +
+	"\x13interval_check_time\x18\x06 \x01(\x04R\x11intervalCheckTime\"Q\n" +
 	"\x14CreateServerResponse\x12\x1f\n" +
-	"\x06server\x18\x01 \x01(\v2\a.ServerR\x06server\"\xc3\x01\n" +
+	"\x06server\x18\x01 \x01(\v2\a.ServerR\x06server\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xc3\x01\n" +
 	"\x13UpdateServerRequest\x12\x1b\n" +
 	"\tserver_id\x18\x01 \x01(\tR\bserverId\x12\x1f\n" +
 	"\vserver_name\x18\x02 \x01(\tR\n" +
@@ -930,12 +971,13 @@ const file_server_service_v1_server_service_proto_rawDesc = "" +
 	"\x04ipv4\x18\x03 \x01(\tR\x04ipv4\x12\x1a\n" +
 	"\blocation\x18\x04 \x01(\tR\blocation\x12\x0e\n" +
 	"\x02os\x18\x05 \x01(\tR\x02os\x12.\n" +
-	"\x13interval_check_time\x18\x06 \x01(\x04R\x11intervalCheckTime\"7\n" +
-	"\x14UpdateServerResponse\x12\x1f\n" +
-	"\x06server\x18\x01 \x01(\v2\a.ServerR\x06server\"2\n" +
+	"\x13interval_check_time\x18\x06 \x01(\x04R\x11intervalCheckTime\"0\n" +
+	"\x14UpdateServerResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"2\n" +
 	"\x13DeleteServerRequest\x12\x1b\n" +
-	"\tserver_id\x18\x01 \x01(\tR\bserverId\"\x16\n" +
-	"\x14DeleteServerResponse\"a\n" +
+	"\tserver_id\x18\x01 \x01(\tR\bserverId\"0\n" +
+	"\x14DeleteServerResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"a\n" +
 	"\x17ViewServerFilterOptions\x12\x1f\n" +
 	"\vserver_name\x18\x01 \x01(\tR\n" +
 	"serverName\x12%\n" +
@@ -950,29 +992,33 @@ const file_server_service_v1_server_service_proto_rawDesc = "" +
 	"\x06filter\x18\x01 \x01(\v2\x18.ViewServerFilterOptionsR\x06filter\x12<\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2\x1c.ViewServerPaginationOptionsR\n" +
-	"pagination\"X\n" +
+	"pagination\"r\n" +
 	"\x12ViewServerResponse\x12!\n" +
 	"\aservers\x18\x01 \x03(\v2\a.ServerR\aservers\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\x05R\n" +
-	"totalCount\"\xa2\x01\n" +
+	"totalCount\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"\xbc\x01\n" +
 	"\x14ImportServerResponse\x12#\n" +
 	"\rsuccess_count\x18\x01 \x01(\rR\fsuccessCount\x12\x1f\n" +
 	"\vsuccess_ids\x18\x02 \x03(\tR\n" +
 	"successIds\x12#\n" +
 	"\rfailure_count\x18\x03 \x01(\rR\ffailureCount\x12\x1f\n" +
 	"\vfailure_ids\x18\x04 \x03(\tR\n" +
-	"failureIds\"\x85\x01\n" +
+	"failureIds\x12\x18\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage\"\x85\x01\n" +
 	"\x13ExportServerRequest\x120\n" +
 	"\x06filter\x18\x01 \x01(\v2\x18.ViewServerFilterOptionsR\x06filter\x12<\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2\x1c.ViewServerPaginationOptionsR\n" +
-	"pagination\"9\n" +
+	"pagination\"S\n" +
 	"\x14ExportServerResponse\x12!\n" +
-	"\aservers\x18\x01 \x03(\v2\a.ServerR\aservers*^\n" +
-	"\fServerStatus\x12\x19\n" +
-	"\x15SERVER_STATUS_UNKNOWN\x10\x00\x12\x18\n" +
-	"\x14SERVER_STATUS_ONLINE\x10\x01\x12\x19\n" +
-	"\x15SERVER_STATUS_OFFLINE\x10\x022\xc8\x04\n" +
+	"\aservers\x18\x01 \x03(\v2\a.ServerR\aservers\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage*4\n" +
+	"\fServerStatus\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\n" +
+	"\n" +
+	"\x06ONLINE\x10\x01\x12\v\n" +
+	"\aOFFLINE\x10\x022\xc8\x04\n" +
 	"\rServerService\x12W\n" +
 	"\fCreateServer\x12\x14.CreateServerRequest\x1a\x15.CreateServerResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/api/v1/servers\x12c\n" +
 	"\fUpdateServer\x12\x14.UpdateServerRequest\x1a\x15.UpdateServerResponse\"&\x82\xd3\xe4\x93\x02 :\x01*\x1a\x1b/api/v1/servers/{server_id}\x12`\n" +
@@ -980,7 +1026,7 @@ const file_server_service_v1_server_service_proto_rawDesc = "" +
 	"\n" +
 	"ViewServer\x12\x12.ViewServerRequest\x1a\x13.ViewServerResponse\"!\x82\xd3\xe4\x93\x02\x1b:\x01*\"\x16/api/v1/servers/search\x12^\n" +
 	"\fImportServer\x12\x14.google.api.HttpBody\x1a\x15.ImportServerResponse\"!\x82\xd3\xe4\x93\x02\x1b:\x01*\"\x16/api/v1/servers/import\x12]\n" +
-	"\fExportServer\x12\x14.ExportServerRequest\x1a\x14.google.api.HttpBody\"!\x82\xd3\xe4\x93\x02\x1b:\x01*\"\x16/api/v1/servers/exportB?Z=github.com/th1enq/ViettelSMS_ServerService/api/viettel_sms/v1b\x06proto3"
+	"\fExportServer\x12\x14.ExportServerRequest\x1a\x14.google.api.HttpBody\"!\x82\xd3\xe4\x93\x02\x1b:\x01*\"\x16/api/v1/servers/exportB>Z<githu.com/th1enq/ViettelSMS_ServerService/api/viettel_sms/v1b\x06proto3"
 
 var (
 	file_server_service_v1_server_service_proto_rawDescOnce sync.Once
@@ -1019,31 +1065,30 @@ var file_server_service_v1_server_service_proto_depIdxs = []int32{
 	0,  // 0: Server.status:type_name -> ServerStatus
 	15, // 1: Server.created_at:type_name -> google.protobuf.Timestamp
 	1,  // 2: CreateServerResponse.server:type_name -> Server
-	1,  // 3: UpdateServerResponse.server:type_name -> Server
-	0,  // 4: ViewServerFilterOptions.status:type_name -> ServerStatus
-	8,  // 5: ViewServerRequest.filter:type_name -> ViewServerFilterOptions
-	9,  // 6: ViewServerRequest.pagination:type_name -> ViewServerPaginationOptions
-	1,  // 7: ViewServerResponse.servers:type_name -> Server
-	8,  // 8: ExportServerRequest.filter:type_name -> ViewServerFilterOptions
-	9,  // 9: ExportServerRequest.pagination:type_name -> ViewServerPaginationOptions
-	1,  // 10: ExportServerResponse.servers:type_name -> Server
-	2,  // 11: ServerService.CreateServer:input_type -> CreateServerRequest
-	4,  // 12: ServerService.UpdateServer:input_type -> UpdateServerRequest
-	6,  // 13: ServerService.DeleteServer:input_type -> DeleteServerRequest
-	10, // 14: ServerService.ViewServer:input_type -> ViewServerRequest
-	16, // 15: ServerService.ImportServer:input_type -> google.api.HttpBody
-	13, // 16: ServerService.ExportServer:input_type -> ExportServerRequest
-	3,  // 17: ServerService.CreateServer:output_type -> CreateServerResponse
-	5,  // 18: ServerService.UpdateServer:output_type -> UpdateServerResponse
-	7,  // 19: ServerService.DeleteServer:output_type -> DeleteServerResponse
-	11, // 20: ServerService.ViewServer:output_type -> ViewServerResponse
-	12, // 21: ServerService.ImportServer:output_type -> ImportServerResponse
-	16, // 22: ServerService.ExportServer:output_type -> google.api.HttpBody
-	17, // [17:23] is the sub-list for method output_type
-	11, // [11:17] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	0,  // 3: ViewServerFilterOptions.status:type_name -> ServerStatus
+	8,  // 4: ViewServerRequest.filter:type_name -> ViewServerFilterOptions
+	9,  // 5: ViewServerRequest.pagination:type_name -> ViewServerPaginationOptions
+	1,  // 6: ViewServerResponse.servers:type_name -> Server
+	8,  // 7: ExportServerRequest.filter:type_name -> ViewServerFilterOptions
+	9,  // 8: ExportServerRequest.pagination:type_name -> ViewServerPaginationOptions
+	1,  // 9: ExportServerResponse.servers:type_name -> Server
+	2,  // 10: ServerService.CreateServer:input_type -> CreateServerRequest
+	4,  // 11: ServerService.UpdateServer:input_type -> UpdateServerRequest
+	6,  // 12: ServerService.DeleteServer:input_type -> DeleteServerRequest
+	10, // 13: ServerService.ViewServer:input_type -> ViewServerRequest
+	16, // 14: ServerService.ImportServer:input_type -> google.api.HttpBody
+	13, // 15: ServerService.ExportServer:input_type -> ExportServerRequest
+	3,  // 16: ServerService.CreateServer:output_type -> CreateServerResponse
+	5,  // 17: ServerService.UpdateServer:output_type -> UpdateServerResponse
+	7,  // 18: ServerService.DeleteServer:output_type -> DeleteServerResponse
+	11, // 19: ServerService.ViewServer:output_type -> ViewServerResponse
+	12, // 20: ServerService.ImportServer:output_type -> ImportServerResponse
+	16, // 21: ServerService.ExportServer:output_type -> google.api.HttpBody
+	16, // [16:22] is the sub-list for method output_type
+	10, // [10:16] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_server_service_v1_server_service_proto_init() }

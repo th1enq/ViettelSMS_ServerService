@@ -242,11 +242,19 @@
       "properties": {
         "server": {
           "$ref": "#/definitions/Server"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
     "DeleteServerResponse": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "ExportServerRequest": {
       "type": "object",
@@ -281,6 +289,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -339,17 +350,17 @@
     "ServerStatus": {
       "type": "string",
       "enum": [
-        "SERVER_STATUS_UNKNOWN",
-        "SERVER_STATUS_ONLINE",
-        "SERVER_STATUS_OFFLINE"
+        "UNKNOWN",
+        "ONLINE",
+        "OFFLINE"
       ],
-      "default": "SERVER_STATUS_UNKNOWN"
+      "default": "UNKNOWN"
     },
     "UpdateServerResponse": {
       "type": "object",
       "properties": {
-        "server": {
-          "$ref": "#/definitions/Server"
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -407,6 +418,9 @@
         "totalCount": {
           "type": "integer",
           "format": "int32"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },

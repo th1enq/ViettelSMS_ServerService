@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/th1enq/ViettelSMS_ServerService/api/viettel_sms/v1";
+option go_package = "githu.com/th1enq/ViettelSMS_ServerService/api/viettel_sms/v1";
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
@@ -45,9 +45,9 @@ service ServerService {
 }
 
 enum ServerStatus {
-    SERVER_STATUS_UNKNOWN = 0;
-    SERVER_STATUS_ONLINE = 1;
-    SERVER_STATUS_OFFLINE = 2;
+    UNKNOWN = 0;
+    ONLINE = 1;
+    OFFLINE = 2;
 }
 
 message Server {
@@ -72,6 +72,7 @@ message CreateServerRequest {
 
 message CreateServerResponse {
     Server server = 1;
+    string message = 2;
 }
 
 message UpdateServerRequest {
@@ -84,14 +85,16 @@ message UpdateServerRequest {
 }
 
 message UpdateServerResponse {
-    Server server = 1;
+    string message = 1;
 }
 
 message DeleteServerRequest {
     string server_id = 1;
 }
 
-message DeleteServerResponse {}
+message DeleteServerResponse {
+    string message = 1;
+}
 
 message ViewServerFilterOptions {
     string server_name = 1;
@@ -113,6 +116,7 @@ message ViewServerRequest {
 message ViewServerResponse {
     repeated Server servers = 1;
     int32 total_count = 2;
+    string message = 3;
 }
 
 message ImportServerResponse {
@@ -120,6 +124,7 @@ message ImportServerResponse {
     repeated string success_ids = 2;
     uint32 failure_count = 3;
     repeated string failure_ids = 4;
+    string message = 5;
 }
 
 message ExportServerRequest {
@@ -129,4 +134,5 @@ message ExportServerRequest {
 
 message ExportServerResponse {
     repeated Server servers = 1;
+    string message = 2;
 }
