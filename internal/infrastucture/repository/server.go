@@ -55,11 +55,11 @@ func (s *ServerRepository) GetServers(ctx context.Context, filter dto.ServerFilt
 
 	query := s.db.GetDB().WithContext(ctx).Model(&entity.Server{})
 
-	if filter.ServerName != "" {
-		query = query.Where("server_name LIKE ?", "%"+filter.ServerName+"%")
+	if filter.ServerName != nil {
+		query = query.Where("server_name LIKE ?", "%"+*filter.ServerName+"%")
 	}
-	if filter.Status != "" {
-		query = query.Where("status = ?", filter.Status)
+	if filter.Status != nil {
+		query = query.Where("status = ?", *filter.Status)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

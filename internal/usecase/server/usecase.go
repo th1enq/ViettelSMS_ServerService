@@ -45,20 +45,33 @@ func NewServerUseCase(
 
 var UseCaseSet = wire.NewSet(NewServerUseCase)
 
-func (s *serverUseCase) CreateServer(ctx context.Context, server *entity.Server) error {
-	s.logger.Info("CreateServer called", zap.Any("server", server))
+func (s *serverUseCase) CreateServer(ctx context.Context, serverCreateRequest dto.CreateServerParams) error {
+	s.logger.Info("CreateServer called", zap.Any("request", serverCreateRequest))
 
-	if exist, err := s.repo.ExistByNameOrID(ctx, server.ServerID, server.ServerName); err != nil {
+	if exist, err := s.repo.ExistByNameOrID(ctx, serverCreateRequest.ServerID, serverCreateRequest.ServerName); err != nil {
 		s.logger.Error("failed to check server existence", zap.Error(err))
-		return err
+		return domain.ErrInternalServer
 	} else if exist {
-		s.logger.Warn("Server already exists", zap.String("server_id", server.ServerID), zap.String("server_name", server.ServerName))
+		s.logger.Warn("Server already exists", zap.String("server_id", serverCreateRequest.ServerID), zap.String("server_name", serverCreateRequest.ServerName))
 		return domain.ErrServerExist
+	}
+
+	server := &entity.Server{
+		ServerID:     serverCreateRequest.ServerID,
+		ServerName:   serverCreateRequest.ServerName,
+		IPv4:         serverCreateRequest.IPv4,
+		IntervalTime: serverCreateRequest.IntervalTime,
+	}
+	if serverCreateRequest.Location != nil {
+		server.Location = *serverCreateRequest.Location
+	}
+	if serverCreateRequest.OS != nil {
+		server.OS = *serverCreateRequest.OS
 	}
 
 	if err := s.repo.Create(ctx, server); err != nil {
 		s.logger.Error("failed to create server", zap.Error(err))
-		return err
+		return domain.ErrInternalServer
 	}
 	s.logger.Info("Server created successfully", zap.Any("server", server))
 	return nil
@@ -73,12 +86,12 @@ func (s *serverUseCase) DeleteServer(ctx context.Context, serverID string) error
 			return domain.ErrServerNotFound
 		}
 		s.logger.Error("failed to get server by ID", zap.String("server_id", serverID), zap.Error(err))
-		return err
+		return domain.ErrInternalServer
 	}
 
 	if err := s.repo.Delete(ctx, serverID); err != nil {
 		s.logger.Error("failed to delete server", zap.String("server_id", serverID))
-		return err
+		return domain.ErrInternalServer
 	}
 
 	s.logger.Info("Server delete successfully", zap.String("server_id", serverID))
@@ -98,7 +111,7 @@ func (s *serverUseCase) ExportServer(ctx context.Context, filter dto.ServerFilte
 	streamWriter, err := file.NewStreamWriter("Sheet1")
 	if err != nil {
 		s.logger.Error("failed to create stream writer for export", zap.Error(err))
-		return "", err
+		return "", domain.ErrInternalServer
 	}
 
 	streamWriter.SetRow("A1", []interface{}{
@@ -117,13 +130,13 @@ func (s *serverUseCase) ExportServer(ctx context.Context, filter dto.ServerFilte
 			server.IntervalTime,
 		}); err != nil {
 			s.logger.Error("failed to write server data to export file", zap.Any("server", server), zap.Error(err))
-			return "", err
+			return "", domain.ErrInternalServer
 		}
 	}
 
 	if err := streamWriter.Flush(); err != nil {
 		s.logger.Error("failed to flush stream writer for export", zap.Error(err))
-		return "", err
+		return "", domain.ErrInternalServer
 	}
 
 	_ = os.MkdirAll("./exports", 0755)
@@ -131,7 +144,7 @@ func (s *serverUseCase) ExportServer(ctx context.Context, filter dto.ServerFilte
 	filePath := fmt.Sprintf("./exports/servers_%d.xlsx", time.Now().Unix())
 	if err := file.SaveAs(filePath); err != nil {
 		s.logger.Error("failed to save export file", zap.String("file_path", filePath), zap.Error(err))
-		return "", err
+		return "", domain.ErrInternalServer
 	}
 
 	s.logger.Info("Export file successfully", zap.String("file_path", filePath), zap.Int("total_server", len(servers)))
@@ -147,7 +160,7 @@ func (s *serverUseCase) ImportServer(ctx context.Context, filePath string) (*dto
 			s.logger.Warn("invalid file format or content", zap.String("filePath", filePath))
 			return nil, domain.ErrInvalidFile
 		}
-		return nil, err
+		return nil, domain.ErrInternalServer
 	}
 
 	if len(rows) <= 2 || s.excelSrv.Validate(rows[0]) != nil {
@@ -229,29 +242,29 @@ func (s *serverUseCase) UpdateServer(ctx context.Context, serverID string, updat
 		return err
 	}
 
-	if update.ServerName != "" {
+	if update.ServerName != nil {
 		exists, err := s.repo.GetByField(ctx, "server_name", update.ServerName)
 		if err == nil && exists != nil && exists.ServerID != server.ServerID {
-			s.logger.Warn("Server with the same name already exists", zap.String("server_name", update.ServerName))
+			s.logger.Warn("Server with the same name already exists", zap.String("server_name", *update.ServerName))
 			return domain.ErrServerExist
 		}
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Error("failed to check server existence by server_name", zap.String("server_name", update.ServerName), zap.Error(err))
+			s.logger.Error("failed to check server existence by server_name", zap.String("server_name", *update.ServerName), zap.Error(err))
 			return err
 		}
-		server.ServerName = update.ServerName
+		server.ServerName = *update.ServerName
 	}
-	if update.IPv4 != "" {
-		server.IPv4 = update.IPv4
+	if update.IPv4 != nil {
+		server.IPv4 = *update.IPv4
 	}
-	if update.Location != "" {
-		server.Location = update.Location
+	if update.Location != nil {
+		server.Location = *update.Location
 	}
-	if update.OS != "" {
-		server.OS = update.OS
+	if update.OS != nil {
+		server.OS = *update.OS
 	}
-	if update.IntervalTime > 0 {
-		server.IntervalTime = update.IntervalTime
+	if update.IntervalTime != nil {
+		server.IntervalTime = *update.IntervalTime
 	}
 
 	if err := s.repo.Update(ctx, server); err != nil {
@@ -281,7 +294,7 @@ func (s *serverUseCase) ViewServer(ctx context.Context, filter dto.ServerFilterO
 	servers, total, err := s.repo.GetServers(ctx, filter, pagination)
 	if err != nil {
 		s.logger.Error("failed to get servers", zap.Error(err))
-		return nil, 0, err
+		return nil, 0, domain.ErrInternalServer
 	}
 	s.logger.Info("Servers retrieved successfully", zap.Int("total", total), zap.Any("servers", servers))
 	return servers, total, nil

@@ -17,7 +17,7 @@ type Server struct {
 	IPv4         string       `json:"ipv4" gorm:"type:varchar(15);not null"`
 	Location     string       `json:"location" gorm:"type:varchar(128)"`
 	OS           string       `json:"os" gorm:"type:varchar(32)"`
-	IntervalTime uint64       `json:"interval_time" gorm:"type:bigint;not null"`
+	IntervalTime int          `json:"interval_time" gorm:"type:int;not null"`
 	CreatedAt    time.Time    `json:"created_at" gorm:"type:timestamp;not null"`
 	DeletedAt    time.Time    `json:"deleted_at" gorm:"type:timestamp;default:null"`
 }

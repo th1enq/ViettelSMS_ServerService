@@ -8,7 +8,7 @@ import (
 )
 
 type UseCase interface {
-	CreateServer(ctx context.Context, server *entity.Server) error
+	CreateServer(ctx context.Context, serverCreateRequest dto.CreateServerParams) error
 	UpdateServer(ctx context.Context, serverID string, update dto.UpdateServerParams) error
 	DeleteServer(ctx context.Context, serverID string) error
 	ViewServer(ctx context.Context, filter dto.ServerFilterOptions, pagination dto.ServerPaginationOptions) ([]*entity.Server, int, error)
