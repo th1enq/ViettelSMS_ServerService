@@ -8,7 +8,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/th1enq/ViettelSMS_ServerService/internal/configs"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/config"
 )
 
 const (
@@ -33,15 +33,11 @@ func main() {
 
 	command := args[0]
 
-	config, err := configs.Load()
-
-	if err != nil {
-		panic(fmt.Sprintf("failed to load configuration: %v", err))
-	}
+	config := config.LoadConfig()
 
 	cfg := config.Postgres
 
-	dsn := fmt.Sprintf(dbString, cfg.Host, cfg.User, cfg.Password, cfg.Name, cfg.Port)
+	dsn := fmt.Sprintf(dbString, cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port)
 
 	db, err := goose.OpenDBWithDriver(dialect, dsn)
 	if err != nil {

@@ -1,0 +1,3 @@
+{"level":"info","timestamp":"2025-08-11T23:16:48.482+0700","caller":"application/app.go:28","msg":"Starting application ..."}
+{"level":"info","timestamp":"2025-08-11T23:16:48.482+0700","caller":"application/app.go:30","msg":"Starting HTTP Server ..."}
+{"level":"info","timestamp":"2025-08-11T23:16:48.482+0700","caller":"http/server.go:41","msg":"HTTP server starting","host":"postgres","port":8080}

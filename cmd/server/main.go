@@ -1,46 +1,28 @@
+// @title Server Management Service
+// @version 1.0
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host 0.0.0.0:8080
+
 package main
 
 import (
-	"fmt"
-	"net"
-	"syscall"
+	"context"
 
-	"github.com/th1enq/ViettelSMS_ServerService/internal/app"
-	"github.com/th1enq/ViettelSMS_ServerService/internal/configs"
-	"github.com/th1enq/ViettelSMS_ServerService/internal/utils"
-	"google.golang.org/grpc"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/application"
 )
 
 func main() {
-	cfg, err := configs.NewConfig(configs.ConfigFilePath("configs/config.yaml"))
+	app, err := application.InitApp()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to load config: %v", err))
+		panic("failed to initialize server: " + err.Error())
 	}
-
-	server := grpc.NewServer()
-
-	_, err = app.InitApp(&cfg, server)
-	if err != nil {
-		panic(err)
-	}
-
-	l, err := net.Listen(
-		"tcp",
-		fmt.Sprintf("%s:%d", cfg.ServerService.Host, cfg.ServerService.Port),
-	)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to listen on %s:%d: %v", cfg.ServerService.Host, cfg.ServerService.Port, err))
-	}
-	defer func() {
-		if err := l.Close(); err != nil {
-			panic(fmt.Sprintf("Failed to close listener: %v", err))
-		}
-	}()
-
-	err = server.Serve(l)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to start gRPC server: %v", err))
-	}
-
-	utils.BlockUntilSignal(syscall.SIGINT, syscall.SIGTERM)
+	app.Start(context.Background())
 }
