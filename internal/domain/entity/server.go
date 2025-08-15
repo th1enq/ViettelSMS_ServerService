@@ -1,6 +1,10 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type ServerStatus string
 
@@ -11,13 +15,13 @@ const (
 )
 
 type Server struct {
-	ServerID     string       `json:"server_id" gorm:"primaryKey;type:varchar(32);not null"`
-	ServerName   string       `json:"server_name" gorm:"type:varchar(64);not null;unique"`
-	Status       ServerStatus `json:"status" gorm:"type:varchar(16);not null;default:'UNKNOWN'"`
-	IPv4         string       `json:"ipv4" gorm:"type:varchar(15);not null"`
-	Location     string       `json:"location" gorm:"type:varchar(128)"`
-	OS           string       `json:"os" gorm:"type:varchar(32)"`
-	IntervalTime int          `json:"interval_time" gorm:"type:int;not null"`
-	CreatedAt    time.Time    `json:"created_at" gorm:"type:timestamp;not null"`
-	DeletedAt    time.Time    `json:"deleted_at" gorm:"type:timestamp;default:null"`
+	ServerID     string       `gorm:"primaryKey"`
+	ServerName   string       `gorm:"not null;unique"`
+	IPv4         string       `gorm:"not null;unique"`
+	Status       ServerStatus `gorm:"not null;default:UNKNOWN"`
+	Location     string
+	OS           string
+	IntervalTime int       `gorm:"not null;default:5"`
+	CreatedAt    time.Time `gorm:"autoCreateTime"`
+	DeletedAt    gorm.DeletedAt
 }

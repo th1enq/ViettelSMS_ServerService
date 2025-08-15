@@ -1,0 +1,376 @@
+definitions:
+  dto.CreateServerParams:
+    properties:
+      interval_time:
+        maximum: 60
+        minimum: 1
+        type: integer
+      ipv4:
+        type: string
+      location:
+        type: string
+      os:
+        type: string
+      server_id:
+        type: string
+      server_name:
+        type: string
+    required:
+    - interval_time
+    - ipv4
+    - server_id
+    - server_name
+    type: object
+  dto.ImportServerResponse:
+    properties:
+      failed_count:
+        type: integer
+      failed_servers:
+        items:
+          type: string
+        type: array
+      server_ids:
+        items:
+          type: string
+        type: array
+      success_count:
+        type: integer
+    type: object
+  dto.ServerResponse:
+    properties:
+      interval_time:
+        type: integer
+      ipv4:
+        type: string
+      location:
+        type: string
+      os:
+        type: string
+      server_id:
+        type: string
+      server_name:
+        type: string
+      status:
+        $ref: '#/definitions/entity.ServerStatus'
+    type: object
+  dto.UpdateServerParams:
+    properties:
+      interval_time:
+        type: integer
+      ipv4:
+        type: string
+      location:
+        type: string
+      os:
+        type: string
+      server_name:
+        type: string
+    type: object
+  entity.ServerStatus:
+    enum:
+    - UNKNOWN
+    - ONLINE
+    - OFFLINE
+    type: string
+    x-enum-varnames:
+    - ServerStatusUnknown
+    - ServerStatusOnline
+    - ServerStatusOffline
+  response.APIResponse:
+    properties:
+      code:
+        type: string
+      data: {}
+      error:
+        $ref: '#/definitions/response.ErrorInfo'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  response.ErrorInfo:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+    type: object
+host: localhost
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Server Management Service
+  version: "1.0"
+paths:
+  /api/v1/server:
+    get:
+      consumes:
+      - application/json
+      description: Get list of servers with optional filters and pagination
+      parameters:
+      - description: Filter by server name
+        in: query
+        name: server_name
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Sort field
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort order
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: View servers
+      tags:
+      - server
+    post:
+      consumes:
+      - application/json
+      description: Create a new server with the provided information
+      parameters:
+      - description: Server information
+        in: body
+        name: server
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateServerParams'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ServerResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new server
+      tags:
+      - server
+  /api/v1/server/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a server by ID
+      parameters:
+      - description: Server ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete server
+      tags:
+      - server
+    put:
+      consumes:
+      - application/json
+      description: Update server information
+      parameters:
+      - description: Server ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Server update information
+        in: body
+        name: updateInfo
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateServerParams'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ServerResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Update server
+      tags:
+      - server
+  /api/v1/server/export:
+    get:
+      consumes:
+      - application/json
+      description: Export servers to an Excel file with optional filters
+      parameters:
+      - description: Filter by server name
+        in: query
+        name: server_name
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - default: server_name
+        description: Sort field
+        in: query
+        name: sort_by
+        type: string
+      - default: asc
+        description: Sort order
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Export servers to Excel file
+      tags:
+      - servers
+  /api/v1/server/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Import multiple servers from an Excel file
+      parameters:
+      - description: Excel file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ImportServerResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Import servers from Excel file
+      tags:
+      - server
+swagger: "2.0"

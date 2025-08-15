@@ -3,13 +3,13 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/dto"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/entity"
 	repo "github.com/th1enq/ViettelSMS_ServerService/internal/domain/repository"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/postgres"
-	"gorm.io/gorm/clause"
 )
 
 type ServerRepository struct {
@@ -78,18 +78,37 @@ func (s *ServerRepository) GetServers(ctx context.Context, filter dto.ServerFilt
 	return servers, int(total), nil
 }
 
-func (s *ServerRepository) BatchCreate(ctx context.Context, servers []*entity.Server) error {
-	if err := s.db.GetDB().WithContext(ctx).
-		Clauses(
-			clause.OnConflict{
-				DoNothing: true,
-			}).
-		Clauses(
-			clause.Returning{},
-		).
-		Create(&servers).Error; err != nil {
-		return err
+func (s *ServerRepository) BatchCreate(ctx context.Context, servers []*entity.Server) ([]*string, error) {
+	var inserted []*string
+	if len(servers) == 0 {
+		return inserted, nil
 	}
 
-	return nil
+	placeholders := make([]string, 0, len(servers))
+	args := make([]interface{}, 0, len(servers)*7)
+
+	for _, server := range servers {
+		placeholders = append(placeholders, "(?, ?, ?, ?, ?, ?, NOW())")
+		args = append(args,
+			server.ServerID,
+			server.ServerName,
+			server.IPv4,
+			server.Location,
+			server.OS,
+			server.IntervalTime,
+		)
+	}
+
+	query := fmt.Sprintf(`
+        INSERT INTO servers (server_id, server_name, ipv4, location, os, interval_time, created_at)
+        VALUES %s
+        ON CONFLICT DO NOTHING
+        RETURNING server_id
+    `, strings.Join(placeholders, ","))
+
+	if err := s.db.GetDB().WithContext(ctx).Raw(query, args...).Scan(&inserted).Error; err != nil {
+		return nil, err
+	}
+
+	return inserted, nil
 }

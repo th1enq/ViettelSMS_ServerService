@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+main
+migrate
+
+# Docker
+Dockerfile*
+docker-compose.yml
+
+# OS
+.DS_Store
+Thumbs.db

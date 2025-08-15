@@ -14,5 +14,5 @@ type ServerRepository interface {
 	GetByField(ctx context.Context, field string, value interface{}) (*entity.Server, error)
 	Update(ctx context.Context, server *entity.Server) error
 	GetServers(ctx context.Context, filter dto.ServerFilterOptions, pagination dto.ServerPaginationOptions) ([]*entity.Server, int, error)
-	BatchCreate(ctx context.Context, servers []*entity.Server) error
+	BatchCreate(ctx context.Context, servers []*entity.Server) ([]*string, error)
 }

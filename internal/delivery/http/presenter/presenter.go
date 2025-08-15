@@ -17,9 +17,9 @@ type (
 		NotFound(c *gin.Context, message string, err error)
 
 		// Success responses
-		Created(c *gin.Context, message string)
+		Created(c *gin.Context, message string, data interface{})
 		Deleted(c *gin.Context, message string)
-		Updated(c *gin.Context, message string)
+		Updated(c *gin.Context, message string, data interface{})
 		Retrived(c *gin.Context, message string, data interface{})
 		Imported(c *gin.Context, message string, data interface{})
 	}
@@ -57,11 +57,11 @@ func (p *presenter) InternalError(c *gin.Context, message string, err error) {
 	))
 }
 
-func (p *presenter) Created(c *gin.Context, message string) {
+func (p *presenter) Created(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusCreated, response.NewSuccessResponse(
 		response.CodeCreated,
 		message,
-		nil,
+		data,
 	))
 }
 
@@ -81,11 +81,11 @@ func (p *presenter) NotFound(c *gin.Context, message string, err error) {
 	))
 }
 
-func (p *presenter) Updated(c *gin.Context, message string) {
+func (p *presenter) Updated(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusOK, response.NewSuccessResponse(
 		response.CodeUpdated,
 		message,
-		nil,
+		data,
 	))
 }
 

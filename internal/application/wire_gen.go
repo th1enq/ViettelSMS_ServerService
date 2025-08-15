@@ -9,7 +9,13 @@ package application
 import (
 	"github.com/th1enq/ViettelSMS_ServerService/internal/config"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/controller"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/presenter"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/logger"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/postgres"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/repository"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/service"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server"
 )
 
 // Injectors from wire.go:
@@ -20,7 +26,16 @@ func InitApp() (*Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	serverInterface := http.NewHttpServer(configConfig, logger)
-	application := NewApplication(serverInterface, logger)
+	dbEngine, err := postgres.NewPostgresDB(configConfig, logger)
+	if err != nil {
+		return nil, err
+	}
+	serverRepository := repository.NewServerRepository(dbEngine)
+	xlsxService := service.NewExcelizeService(logger)
+	useCase := server.NewServerUseCase(serverRepository, xlsxService, logger)
+	presenterPresenter := presenter.NewPresenter()
+	controllerController := controller.NewController(useCase, logger, presenterPresenter)
+	httpServer := http.NewHttpServer(configConfig, controllerController, logger)
+	application := NewApplication(httpServer, logger)
 	return application, nil
 }

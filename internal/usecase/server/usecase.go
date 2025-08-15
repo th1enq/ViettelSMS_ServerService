@@ -45,15 +45,15 @@ func NewServerUseCase(
 
 var UseCaseSet = wire.NewSet(NewServerUseCase)
 
-func (s *serverUseCase) CreateServer(ctx context.Context, serverCreateRequest dto.CreateServerParams) error {
+func (s *serverUseCase) CreateServer(ctx context.Context, serverCreateRequest dto.CreateServerParams) (*dto.ServerResponse, error) {
 	s.logger.Info("CreateServer called", zap.Any("request", serverCreateRequest))
 
 	if exist, err := s.repo.ExistByNameOrID(ctx, serverCreateRequest.ServerID, serverCreateRequest.ServerName); err != nil {
 		s.logger.Error("failed to check server existence", zap.Error(err))
-		return domain.ErrInternalServer
+		return nil, domain.ErrInternalServer
 	} else if exist {
 		s.logger.Warn("Server already exists", zap.String("server_id", serverCreateRequest.ServerID), zap.String("server_name", serverCreateRequest.ServerName))
-		return domain.ErrServerExist
+		return nil, domain.ErrServerExist
 	}
 
 	server := &entity.Server{
@@ -71,10 +71,10 @@ func (s *serverUseCase) CreateServer(ctx context.Context, serverCreateRequest dt
 
 	if err := s.repo.Create(ctx, server); err != nil {
 		s.logger.Error("failed to create server", zap.Error(err))
-		return domain.ErrInternalServer
+		return nil, domain.ErrInternalServer
 	}
 	s.logger.Info("Server created successfully", zap.Any("server", server))
-	return nil
+	return dto.ToServerResponse(server), nil
 }
 
 func (s *serverUseCase) DeleteServer(ctx context.Context, serverID string) error {
@@ -205,12 +205,12 @@ func (s *serverUseCase) ImportServer(ctx context.Context, filePath string) (*dto
 		s.logger.Info("Processing batch", zap.Int("start", i), zap.Int("end", end))
 
 		workerPool.Submit(func() {
-			if err := s.repo.BatchCreate(ctx, batchCopy); err == nil {
+			if successIDs, err := s.repo.BatchCreate(ctx, batchCopy); err == nil {
 				mu.Lock()
-				result.SuccessCount += len(batchCopy)
-				for _, server := range batchCopy {
-					successID[server.ServerID] = true
-					result.SuccessServers = append(result.SuccessServers, fmt.Sprintf("Server ID: %s, Name: %s", server.ServerID, server.ServerName))
+				result.SuccessCount += len(successIDs)
+				for _, id := range successIDs {
+					successID[*id] = true
+					result.SuccessServers = append(result.SuccessServers, fmt.Sprintf("Server ID: %s", *id))
 				}
 				mu.Unlock()
 			}
@@ -229,28 +229,28 @@ func (s *serverUseCase) ImportServer(ctx context.Context, filePath string) (*dto
 	return &result, nil
 }
 
-func (s *serverUseCase) UpdateServer(ctx context.Context, serverID string, update dto.UpdateServerParams) error {
+func (s *serverUseCase) UpdateServer(ctx context.Context, serverID string, update dto.UpdateServerParams) (*dto.ServerResponse, error) {
 	s.logger.Info("UpdateServer called", zap.String("server_id", serverID), zap.Any("update", update))
 
 	server, err := s.repo.GetByField(ctx, "server_id", serverID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Warn("Server not found", zap.String("server_id", serverID))
-			return domain.ErrServerNotFound
+			return nil, domain.ErrServerNotFound
 		}
 		s.logger.Error("failed to get server by ID", zap.String("server_id", serverID), zap.Error(err))
-		return err
+		return nil, domain.ErrInternalServer
 	}
 
 	if update.ServerName != nil {
 		exists, err := s.repo.GetByField(ctx, "server_name", update.ServerName)
 		if err == nil && exists != nil && exists.ServerID != server.ServerID {
 			s.logger.Warn("Server with the same name already exists", zap.String("server_name", *update.ServerName))
-			return domain.ErrServerExist
+			return nil, domain.ErrServerExist
 		}
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Error("failed to check server existence by server_name", zap.String("server_name", *update.ServerName), zap.Error(err))
-			return err
+			return nil, domain.ErrInternalServer
 		}
 		server.ServerName = *update.ServerName
 	}
@@ -269,27 +269,14 @@ func (s *serverUseCase) UpdateServer(ctx context.Context, serverID string, updat
 
 	if err := s.repo.Update(ctx, server); err != nil {
 		s.logger.Error("failed to update server", zap.Any("server", server), zap.Error(err))
-		return err
+		return nil, domain.ErrInternalServer
 	}
 	s.logger.Info("Update server successfully", zap.Any("server", server))
-	return nil
+	return dto.ToServerResponse(server), nil
 }
 
-func (s *serverUseCase) ViewServer(ctx context.Context, filter dto.ServerFilterOptions, pagination dto.ServerPaginationOptions) ([]*entity.Server, int, error) {
+func (s *serverUseCase) ViewServer(ctx context.Context, filter dto.ServerFilterOptions, pagination dto.ServerPaginationOptions) ([]*dto.ServerResponse, int, error) {
 	s.logger.Info("ViewServer called", zap.Any("filter", filter), zap.Any("pagination", pagination))
-
-	if pagination.Page < 1 {
-		pagination.Page = 1
-	}
-	if pagination.PageSize < 1 {
-		pagination.PageSize = 10
-	}
-	if pagination.SortBy == "" {
-		pagination.SortBy = "server_name"
-	}
-	if pagination.SortOrder == "" {
-		pagination.SortOrder = "asc"
-	}
 
 	servers, total, err := s.repo.GetServers(ctx, filter, pagination)
 	if err != nil {
@@ -297,5 +284,5 @@ func (s *serverUseCase) ViewServer(ctx context.Context, filter dto.ServerFilterO
 		return nil, 0, domain.ErrInternalServer
 	}
 	s.logger.Info("Servers retrieved successfully", zap.Int("total", total), zap.Any("servers", servers))
-	return servers, total, nil
+	return dto.ToServersResponse(servers), total, nil
 }

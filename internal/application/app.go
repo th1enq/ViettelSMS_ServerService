@@ -10,12 +10,12 @@ import (
 )
 
 type Application struct {
-	httpServer http.ServerInterface
+	httpServer http.Server
 	logger     *zap.Logger
 }
 
 func NewApplication(
-	httpServer http.ServerInterface,
+	httpServer http.Server,
 	logger *zap.Logger,
 ) *Application {
 	return &Application{
