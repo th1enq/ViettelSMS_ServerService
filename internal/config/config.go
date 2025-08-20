@@ -30,12 +30,18 @@ type (
 		MaxBackups int    `mapstructure:"max_backups"`
 		MaxAge     int    `mapstructure:"max_age"`
 	}
+
+	Broker struct {
+		Address  []string `mapstructure:"address"`
+		ClientID string   `mapstructure:"client_id"`
+	}
 )
 
 type Config struct {
 	Server   Server   `mapstructure:"server"`
 	Postgres Postgres `mapstructure:"postgres"`
 	Logger   Logger   `mapstructure:"logger"`
+	Broker   Broker   `mapstructure:"broker"`
 }
 
 var ConfigWireSet = wire.NewSet(LoadConfig)
