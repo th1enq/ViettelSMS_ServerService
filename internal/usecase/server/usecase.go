@@ -286,3 +286,12 @@ func (s *serverUseCase) ViewServer(ctx context.Context, filter dto.ServerFilterO
 	s.logger.Info("Servers retrieved successfully", zap.Int("total", total), zap.Any("servers", servers))
 	return dto.ToServersResponse(servers), total, nil
 }
+
+func (s *serverUseCase) UpdateStatus(ctx context.Context, updateStatus dto.UpdateStatusMessage) error {
+	s.logger.Info("UpdateStatus called", zap.Any("update_status", updateStatus))
+	if err := s.repo.UpdateStatus(ctx, updateStatus.ServerID, entity.ServerStatus(updateStatus.Status)); err != nil {
+		s.logger.Error("failed to update status", zap.Error(err))
+		return domain.ErrInternalServer
+	}
+	return nil
+}

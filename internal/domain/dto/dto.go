@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/th1enq/ViettelSMS_ServerService/internal/domain/entity"
+import (
+	"time"
+
+	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/entity"
+)
 
 type (
 	CreateServerParams struct {
@@ -47,6 +51,12 @@ type (
 		Location     string              `json:"location"`
 		OS           string              `json:"os"`
 		IntervalTime int                 `json:"interval_time"`
+	}
+
+	UpdateStatusMessage struct {
+		ServerID  string              `json:"server_id"`
+		Status    entity.ServerStatus `json:"status"`
+		Timestamp time.Time           `json:"timestamp"`
 	}
 )
 

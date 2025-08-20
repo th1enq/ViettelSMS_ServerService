@@ -14,4 +14,6 @@ type UseCase interface {
 
 	ImportServer(ctx context.Context, filePath string) (*dto.ImportServerResponse, error)
 	ExportServer(ctx context.Context, filter dto.ServerFilterOptions, pagination dto.ServerPaginationOptions) (string, error)
+
+	UpdateStatus(ctx context.Context, updateStatus dto.UpdateStatusMessage) error
 }

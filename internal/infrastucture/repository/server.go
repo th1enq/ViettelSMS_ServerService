@@ -112,3 +112,7 @@ func (s *ServerRepository) BatchCreate(ctx context.Context, servers []*entity.Se
 
 	return inserted, nil
 }
+
+func (s *ServerRepository) UpdateStatus(ctx context.Context, serverID string, status entity.ServerStatus) error {
+	return s.db.GetDB().WithContext(ctx).Model(&entity.Server{}).Where("server_id = ?", serverID).Update("status", status).Error
+}
