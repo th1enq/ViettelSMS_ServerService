@@ -53,17 +53,9 @@ COPY --from=builder /app/scripts/entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
 # Create logs directory and set permissions
-RUN mkdir -p logs && chown -R appuser:appgroup /app
-
-# Switch to non-root user
-USER appuser
+RUN mkdir -p logs
 
 # Expose port (from config.yaml, user_service port is 8082)
 EXPOSE 8081
-
-# Health check - using a simple port check since grpc_health_probe might not be available
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD nc -z localhost 8081 || exit 1
-
 # Run the entrypoint script which handles migrations and starts the app
 CMD ["./entrypoint.sh"] 

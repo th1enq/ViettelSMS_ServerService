@@ -20,7 +20,7 @@ type messageBroker struct {
 func NewBroker(cfg *config.Config, logger *zap.Logger) (MessageBroker, error) {
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.Producer.Return.Successes = true
-	producer, err := sarama.NewSyncProducer(cfg.Broker.Address, saramaConfig)
+	producer, err := sarama.NewSyncProducer(cfg.Kafka.Address, saramaConfig)
 	if err != nil {
 		return nil, err
 	}

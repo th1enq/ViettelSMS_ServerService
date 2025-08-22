@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/gammazero/workerpool"
 	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/config"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/mq"
@@ -18,7 +17,6 @@ import (
 )
 
 const (
-	WORKER_NUMBER   = 5
 	MAX_RETRY       = 3
 	DLQ             = "dead-letter"
 	RETRY_TOPIC_10S = "retry-10s"
@@ -243,14 +241,12 @@ func (h *consumerHandler) handleDLQMessage(
 }
 
 func (h *consumerHandler) stopWorkerAndCommit(
-	pool *workerpool.WorkerPool,
 	session sarama.ConsumerGroupSession,
 ) {
 	const shutdownTimeout = 5 * time.Second
 
 	done := make(chan struct{})
 	go func() {
-		pool.StopWait()
 		close(done)
 	}()
 
@@ -264,43 +260,40 @@ func (h *consumerHandler) stopWorkerAndCommit(
 }
 
 func (h *consumerHandler) handleMessageAsync(
-	pool *workerpool.WorkerPool,
 	session sarama.ConsumerGroupSession,
 	claim sarama.ConsumerGroupClaim,
 	msg *sarama.ConsumerMessage,
 ) {
 	m := msg
-	pool.Submit(func() {
-		var err error
+	var err error
 
-		workerID := fmt.Sprintf("worker-%d", time.Now().UnixNano())
+	workerID := fmt.Sprintf("worker-%d", time.Now().UnixNano())
 
-		// Handle different types of messages
-		switch m.Topic {
-		case RETRY_TOPIC_10S, RETRY_TOPIC_1M, RETRY_TOPIC_5M:
-			h.logger.Debug("Handling retry message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
-			err = h.handleRetryMessage(session, m)
-		case DLQ:
-			h.logger.Debug("Handling DLQ message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
-			err = h.handleDLQMessage(session, m)
-		default:
-			h.logger.Debug("Handling regular message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
-			// Regular message processing
-			err = h.handlerFunc(context.Background(), m.Topic, m.Value)
+	// Handle different types of messages
+	switch m.Topic {
+	case RETRY_TOPIC_10S, RETRY_TOPIC_1M, RETRY_TOPIC_5M:
+		h.logger.Debug("Handling retry message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
+		err = h.handleRetryMessage(session, m)
+	case DLQ:
+		h.logger.Debug("Handling DLQ message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
+		err = h.handleDLQMessage(session, m)
+	default:
+		h.logger.Debug("Handling regular message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
+		// Regular message processing
+		err = h.handlerFunc(context.Background(), m.Topic, m.Value)
+	}
+
+	if err != nil {
+		h.logger.Error("Error processing message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value), zap.Error(err))
+		// Only send to retry queue for regular messages and retry failures
+		if m.Topic != DLQ {
+			h.sendToRetryQueue(session, m, err)
 		}
+		session.MarkMessage(m, "error")
+		return
+	}
 
-		if err != nil {
-			h.logger.Error("Error processing message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value), zap.Error(err))
-			// Only send to retry queue for regular messages and retry failures
-			if m.Topic != DLQ {
-				h.sendToRetryQueue(session, m, err)
-			}
-			session.MarkMessage(m, "error")
-			return
-		}
-
-		session.MarkMessage(m, "ok")
-	})
+	session.MarkMessage(m, "ok")
 }
 
 func (h *consumerHandler) ConsumeClaim(
@@ -308,18 +301,17 @@ func (h *consumerHandler) ConsumeClaim(
 	claim sarama.ConsumerGroupClaim,
 ) error {
 	h.logger.Info("Starting message consumption", zap.String("topic", claim.Topic()))
-	workerPool := workerpool.New(WORKER_NUMBER)
 	for {
 		select {
 		case msg, ok := <-claim.Messages():
 			if !ok {
-				h.stopWorkerAndCommit(workerPool, session)
+				h.stopWorkerAndCommit(session)
 				return nil
 			}
-			h.handleMessageAsync(workerPool, session, claim, msg)
+			h.handleMessageAsync(session, claim, msg)
 		case <-h.exitSignalChannel:
 			h.logger.Info("Exit signal received, stopping consumer")
-			h.stopWorkerAndCommit(workerPool, session)
+			h.stopWorkerAndCommit(session)
 			return nil
 		}
 	}
@@ -339,7 +331,7 @@ func NewConsumer(
 	config.Consumer.Return.Errors = true
 	config.Consumer.Offsets.AutoCommit.Enable = false // Manual commit for better control
 
-	saramaConsumer, err := sarama.NewConsumerGroup(cfg.Broker.Address, cfg.Broker.ClientID, config)
+	saramaConsumer, err := sarama.NewConsumerGroup(cfg.Kafka.Address, cfg.Kafka.ClientID, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create consumer group: %w", err)
 	}

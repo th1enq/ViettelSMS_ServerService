@@ -6,9 +6,11 @@ package application
 import (
 	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/config"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/consumer"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/controller"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/presenter"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/kafka"
 	log "github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/logger"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/postgres"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/repository"
@@ -28,5 +30,7 @@ func InitApp() (*Application, error) {
 		postgres.PostgresWireSet,
 		service.ExcelizeServiceSet,
 		presenter.PresenterWireSet,
+		kafka.WireSet,
+		consumer.WireSet,
 	))
 }

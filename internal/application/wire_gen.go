@@ -8,9 +8,12 @@ package application
 
 import (
 	"github.com/th1enq/ViettelSMS_ServerService/internal/config"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/consumer"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/controller"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/presenter"
+	consumer2 "github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/kafka/consumer"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/kafka/producer"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/logger"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/postgres"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/repository"
@@ -36,6 +39,16 @@ func InitApp() (*Application, error) {
 	presenterPresenter := presenter.NewPresenter()
 	controllerController := controller.NewController(useCase, logger, presenterPresenter)
 	httpServer := http.NewHttpServer(configConfig, controllerController, logger)
-	application := NewApplication(httpServer, logger)
+	handleFunc := consumer.NewHandlerFunc(logger, useCase)
+	messageBroker, err := producer.NewBroker(configConfig, logger)
+	if err != nil {
+		return nil, err
+	}
+	consumerConsumer, err := consumer2.NewConsumer(configConfig, messageBroker, logger)
+	if err != nil {
+		return nil, err
+	}
+	root := consumer.NewRoot(logger, handleFunc, consumerConsumer)
+	application := NewApplication(httpServer, root, logger)
 	return application, nil
 }

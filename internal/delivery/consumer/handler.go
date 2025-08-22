@@ -29,7 +29,7 @@ func NewHandlerFunc(
 	}
 }
 
-var HandlerFunc = wire.NewSet(NewHandlerFunc)
+var HandlerFuncSet = wire.NewSet(NewHandlerFunc)
 
 func (h *handleFunc) Handle(ctx context.Context, topic string, payload []byte) error {
 	h.logger.Info("Handling message", zap.String("topic", topic), zap.ByteString("payload", payload))

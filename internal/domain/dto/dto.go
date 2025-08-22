@@ -10,7 +10,7 @@ type (
 	CreateServerParams struct {
 		ServerID     string  `json:"server_id" binding:"required"`
 		ServerName   string  `json:"server_name" binding:"required"`
-		IPv4         string  `json:"ipv4" binding:"required, ipv4"`
+		IPv4         string  `json:"ipv4" binding:"required,ipv4"`
 		Location     *string `json:"location"`
 		OS           *string `json:"os"`
 		IntervalTime int     `json:"interval_time" binding:"required,min=1,max=60"`
