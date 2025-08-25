@@ -20,30 +20,22 @@ COPY . .
 RUN chmod +x scripts/entrypoint.sh
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main cmd/server/main.go
+RUN go build -o main cmd/server/main.go
 
 # Build migrate binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o migrate cmd/migrate/main.go
+RUN go build -o migrate cmd/migrate/main.go
 
 # Final stage
 FROM alpine:latest
 
 # Install runtime dependencies
-# Install runtime dependencies
 RUN apk --no-cache add ca-certificates tzdata netcat-openbsd
-
-# Create non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
 
 WORKDIR /app
 
 # Copy binary from builder stage
 COPY --from=builder /app/main .
 COPY --from=builder /app/migrate .
-
-# Copy config file
-COPY --from=builder /app/config.dev.yaml .
 
 # Copy migration files (if needed for migrate command)
 COPY --from=builder /app/migrations/ ./migrations/
@@ -52,10 +44,7 @@ COPY --from=builder /app/migrations/ ./migrations/
 COPY --from=builder /app/scripts/entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
-# Create logs directory and set permissions
-RUN mkdir -p logs
-
 # Expose port (from config.yaml, user_service port is 8082)
-EXPOSE 8081
+EXPOSE 8080
 # Run the entrypoint script which handles migrations and starts the app
 CMD ["./entrypoint.sh"] 

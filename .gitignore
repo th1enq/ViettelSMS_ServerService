@@ -17,3 +17,6 @@ temp/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+#vendor
+vendor/

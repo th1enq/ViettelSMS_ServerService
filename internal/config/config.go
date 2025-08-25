@@ -47,7 +47,7 @@ func LoadConfig() *Config {
 
 	// server service env
 	viper.SetDefault("SERVER_HOST", "0.0.0.0")
-	viper.SetDefault("SERVER_PORT", 8081)
+	viper.SetDefault("SERVER_PORT", 8080)
 
 	serverEnv := Server{
 		Host: viper.GetString("SERVER_HOST"),
