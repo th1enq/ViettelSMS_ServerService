@@ -3,9 +3,12 @@ package consumer
 import (
 	"context"
 
-	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/kafka/consumer"
 	"go.uber.org/zap"
+)
+
+const (
+	UPTIME_TOPIC = "server_heartbeat"
 )
 
 type (
@@ -32,16 +35,12 @@ func NewRoot(
 	}
 }
 
-var RootSet = wire.NewSet(NewRoot)
-
 func (r *root) Start(ctx context.Context) error {
 	r.logger.Info("Starting Kafka consumer...")
 
 	r.consumer.RegisterHandler(
-		"server_heartbeat",
+		UPTIME_TOPIC,
 		func(ctx context.Context, queueName string, payload []byte) error {
-			r.logger.Info("Processing message", zap.String("queue", queueName), zap.ByteString("payload", payload))
-
 			return r.handler.Handle(ctx, queueName, payload)
 		},
 	)

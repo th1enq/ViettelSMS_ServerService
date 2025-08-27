@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/google/wire"
 	"github.com/mcuadros/go-defaults"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/presenter"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/dto"
@@ -32,8 +31,6 @@ func NewController(
 		presenter: presenter,
 	}
 }
-
-var ControllerWireSet = wire.NewSet(NewController)
 
 // CreateServer godoc
 // @Summary Create a new server

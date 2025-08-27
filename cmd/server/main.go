@@ -10,7 +10,6 @@
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
 // @host localhost
-
 package main
 
 import (

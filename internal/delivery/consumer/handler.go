@@ -33,6 +33,7 @@ var HandlerFuncSet = wire.NewSet(NewHandlerFunc)
 
 func (h *handleFunc) Handle(ctx context.Context, topic string, payload []byte) error {
 	h.logger.Info("Handling message", zap.String("topic", topic), zap.ByteString("payload", payload))
+
 	var msg dto.UpdateStatusMessage
 	if err := json.Unmarshal(payload, &msg); err != nil {
 		h.logger.Error("failed to unmarshal payload", zap.Error(err))

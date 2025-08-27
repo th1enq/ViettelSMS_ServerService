@@ -3,7 +3,6 @@ package postgres
 import (
 	"fmt"
 
-	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/config"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
@@ -48,5 +47,3 @@ func NewPostgresDB(cfg *config.Config, logger *zap.Logger) (DBEngine, error) {
 func (p *postgresDB) GetDB() *gorm.DB {
 	return p.db
 }
-
-var PostgresWireSet = wire.NewSet(NewPostgresDB)

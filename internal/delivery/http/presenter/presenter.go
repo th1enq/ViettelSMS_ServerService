@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/response"
 )
 
@@ -30,8 +29,6 @@ type (
 func NewPresenter() Presenter {
 	return &presenter{}
 }
-
-var PresenterWireSet = wire.NewSet(NewPresenter)
 
 func (p *presenter) InvalidRequest(c *gin.Context, message string, err error) {
 	c.JSON(http.StatusBadRequest, response.NewErrorResponse(
