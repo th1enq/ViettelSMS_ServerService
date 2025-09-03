@@ -201,7 +201,10 @@ func (s *Controller) View(c *gin.Context) {
 		return
 	}
 	s.logger.Info("Servers retrieved successfully", zap.Int("total", total))
-	s.presenter.Retrived(c, "Servers retrieved successfully", server)
+	s.presenter.Retrived(c, "Servers retrieved successfully", map[string]interface{}{
+		"servers": server,
+		"total":   total,
+	})
 }
 
 // ImportServers godoc

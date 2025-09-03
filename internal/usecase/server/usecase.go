@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gammazero/workerpool"
-	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/dto"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/entity"
 	domain "github.com/th1enq/ViettelSMS_ServerService/internal/domain/errors"
@@ -42,8 +41,6 @@ func NewServerUseCase(
 		logger:   logger,
 	}
 }
-
-var UseCaseSet = wire.NewSet(NewServerUseCase)
 
 func (s *serverUseCase) CreateServer(ctx context.Context, serverCreateRequest dto.CreateServerParams) (*dto.ServerResponse, error) {
 	s.logger.Info("CreateServer called", zap.Any("request", serverCreateRequest))

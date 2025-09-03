@@ -45,6 +45,7 @@ type (
 	}
 
 	ServerResponse struct {
+		ID           uint                `json:"id"`
 		ServerID     string              `json:"server_id"`
 		ServerName   string              `json:"server_name"`
 		IPv4         string              `json:"ipv4"`
