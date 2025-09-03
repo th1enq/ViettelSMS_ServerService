@@ -5,322 +5,126 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/config"
-	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/mq"
-	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/kafka/producer"
+	log "github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/logger"
 	"go.uber.org/zap"
 )
 
-const (
-	MAX_RETRY       = 3
-	DLQ             = "dead-letter"
-	RETRY_TOPIC_10S = "retry-10s"
-	RETRY_TOPIC_1M  = "retry-1m"
-	RETRY_TOPIC_5M  = "retry-5m"
+type HandlerFunc func(ctx context.Context, queueName string, payload []byte) error
 
-	// Header keys
-	HEADER_RETRY_COUNT  = "retry-count"
-	HEADER_ORIGIN_TOPIC = "origin-topic"
-	HEADER_ERROR        = "error"
-	HEADER_RETRY_TIME   = "retry-time"
-)
-
-type (
-	HandlerFunc func(ctx context.Context, queueName string, payload []byte) error
-
-	consumerHandler struct {
-		handlerFunc       HandlerFunc
-		exitSignalChannel chan os.Signal
-		prod              producer.MessageBroker
-		logger            *zap.Logger
-		handlerMap        map[string]HandlerFunc // Add this to access original handlers
-	}
-
-	Consumer interface {
-		RegisterHandler(queueName string, handlerFunc HandlerFunc)
-		Start(ctx context.Context) error
-	}
-
-	consumer struct {
-		saramaConsumer            sarama.ConsumerGroup
-		logger                    *zap.Logger
-		prod                      producer.MessageBroker
-		queueNameToHandlerFuncMap map[string]HandlerFunc
-	}
-)
+type consumerHandler struct {
+	handlerFunc HandlerFunc
+	logger      *zap.Logger
+}
 
 func newConsumerHandler(
 	handlerFunc HandlerFunc,
-	exitSignalChannel chan os.Signal,
-	prod producer.MessageBroker,
 	logger *zap.Logger,
 ) *consumerHandler {
 	return &consumerHandler{
-		handlerFunc:       handlerFunc,
-		exitSignalChannel: exitSignalChannel,
-		logger:            logger,
-		prod:              prod,
-		handlerMap:        make(map[string]HandlerFunc),
-	}
-}
-
-func newConsumerHandlerWithMap(
-	handlerFunc HandlerFunc,
-	exitSignalChannel chan os.Signal,
-	prod producer.MessageBroker,
-	logger *zap.Logger,
-	handlerMap map[string]HandlerFunc,
-) *consumerHandler {
-	return &consumerHandler{
-		handlerFunc:       handlerFunc,
-		exitSignalChannel: exitSignalChannel,
-		logger:            logger,
-		prod:              prod,
-		handlerMap:        handlerMap,
+		handlerFunc: handlerFunc,
+		logger:      logger,
 	}
 }
 
 func (h *consumerHandler) Setup(sarama.ConsumerGroupSession) error {
+	h.logger.Info("Consumer group session started")
 	return nil
 }
 
 func (h *consumerHandler) Cleanup(sarama.ConsumerGroupSession) error {
+	h.logger.Info("Consumer group session cleanup")
 	return nil
 }
 
-func getHeader(headers []*sarama.RecordHeader, key string) (string, bool) {
-	for _, h := range headers {
-		if string(h.Key) == key {
-			return string(h.Value), true
+func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	// Process messages
+	for message := range claim.Messages() {
+		h.logger.Debug("Processing message",
+			zap.String("topic", message.Topic),
+			zap.Int32("partition", message.Partition),
+			zap.Int64("offset", message.Offset))
+
+		// Process message with retry logic
+		if err := h.processMessageWithRetry(session.Context(), message); err != nil {
+			h.logger.Error("Failed to process message after retries",
+				zap.String("topic", message.Topic),
+				zap.Int64("offset", message.Offset),
+				zap.Error(err))
+
+			// Decide whether to continue or stop based on error criticality
+			// For now, we'll mark and continue to avoid blocking the consumer
+			session.MarkMessage(message, "")
+			continue
+		}
+
+		// Mark message as processed
+		session.MarkMessage(message, "")
+
+		// Commit periodically (optional, can be configured)
+		if message.Offset%100 == 0 {
+			session.Commit()
 		}
 	}
-	return "", false
-}
-
-func getHeaderOrDefault(headers []*sarama.RecordHeader, key, defaultValue string) string {
-	if value, ok := getHeader(headers, key); ok {
-		return value
-	}
-	return defaultValue
-}
-
-func (h *consumerHandler) sendToRetryQueue(
-	session sarama.ConsumerGroupSession,
-	msg *sarama.ConsumerMessage,
-	err error,
-) {
-	retryCount := 0
-	if header, ok := getHeader(msg.Headers, HEADER_RETRY_COUNT); ok {
-		if count, parseErr := strconv.Atoi(header); parseErr == nil {
-			retryCount = count
-		}
-	}
-	retryCount++
-
-	if retryCount > MAX_RETRY {
-		h.logger.Warn("Message moved to DLQ",
-			zap.String("topic", msg.Topic),
-			zap.ByteString("body", msg.Value),
-			zap.Int("retry_count", retryCount),
-			zap.Error(err))
-
-		h.prod.Send(mq.Message{
-			Headers: map[string]string{
-				HEADER_ORIGIN_TOPIC: msg.Topic,
-				HEADER_RETRY_COUNT:  fmt.Sprintf("%d", retryCount),
-				HEADER_ERROR:        err.Error(),
-			},
-			Body:  msg.Value,
-			Topic: DLQ,
-		})
-		return
-	}
-
-	var retryTopic string
-	switch retryCount {
-	case 1:
-		retryTopic = RETRY_TOPIC_10S
-	case 2:
-		retryTopic = RETRY_TOPIC_1M
-	case 3:
-		retryTopic = RETRY_TOPIC_5M
-	default:
-		// Fallback to DLQ if retry count exceeds expected values
-		retryTopic = DLQ
-	}
-
-	h.logger.Info("Sending message to retry topic",
-		zap.String("retry_topic", retryTopic),
-		zap.ByteString("body", msg.Value),
-		zap.Int("retry_count", retryCount),
-		zap.Error(err))
-
-	h.prod.Send(mq.Message{
-		Headers: map[string]string{
-			HEADER_ORIGIN_TOPIC: msg.Topic,
-			HEADER_RETRY_COUNT:  fmt.Sprintf("%d", retryCount),
-			HEADER_ERROR:        err.Error(),
-		},
-		Body:  msg.Value,
-		Topic: retryTopic,
-	})
-}
-
-func (h *consumerHandler) handleRetryMessage(
-	session sarama.ConsumerGroupSession,
-	msg *sarama.ConsumerMessage,
-) error {
-	originTopic, ok := getHeader(msg.Headers, HEADER_ORIGIN_TOPIC)
-	if !ok {
-		h.logger.Error("Missing origin topic header in retry message", zap.String("topic", msg.Topic), zap.ByteString("body", msg.Value))
-		return fmt.Errorf("missing origin topic header")
-	}
-
-	var delay time.Duration
-	switch msg.Topic {
-	case RETRY_TOPIC_10S:
-		delay = 10 * time.Second
-	case RETRY_TOPIC_1M:
-		delay = 1 * time.Minute
-	case RETRY_TOPIC_5M:
-		delay = 5 * time.Minute
-	default:
-		delay = 0
-	}
-
-	h.logger.Info("Retrying message",
-		zap.String("origin_topic", originTopic),
-		zap.String("retry_topic", msg.Topic),
-		zap.Duration("delay", delay),
-		zap.ByteString("body", msg.Value))
-
-	// Simulate delay
-	time.Sleep(delay)
-
-	headers := map[string]string{}
-
-	for _, header := range msg.Headers {
-		headers[string(header.Key)] = string(header.Value)
-	}
-
-	h.prod.Send(mq.Message{
-		Headers: headers,
-		Body:    msg.Value,
-		Topic:   originTopic,
-	})
 
 	return nil
 }
 
-func (h *consumerHandler) handleDLQMessage(
-	session sarama.ConsumerGroupSession,
-	msg *sarama.ConsumerMessage,
-) error {
-	// Log DLQ message for monitoring/alerting
-	originTopic := getHeaderOrDefault(msg.Headers, HEADER_ORIGIN_TOPIC, "unknown")
-	retryCount := getHeaderOrDefault(msg.Headers, HEADER_RETRY_COUNT, "0")
-	errorMsg := getHeaderOrDefault(msg.Headers, HEADER_ERROR, "unknown error")
+func (h *consumerHandler) processMessageWithRetry(ctx context.Context, message *sarama.ConsumerMessage) error {
+	maxRetries := 3
+	var lastErr error
 
-	h.logger.Error("Message in Dead Letter Queue",
-		zap.String("origin_topic", originTopic),
-		zap.String("retry_count", retryCount),
-		zap.String("error", errorMsg),
-		zap.ByteString("body", msg.Value))
+	for i := 0; i < maxRetries; i++ {
+		if i > 0 {
+			// Exponential backoff
+			backoff := time.Duration(i*i) * time.Second
+			h.logger.Warn("Retrying message processing",
+				zap.Int("attempt", i+1),
+				zap.Duration("backoff", backoff))
 
-	// Here you could implement additional DLQ handling like:
-	// - Sending alerts
-	// - Storing in database for manual review
-	// - Metrics reporting
-
-	return nil
-}
-
-func (h *consumerHandler) stopWorkerAndCommit(
-	session sarama.ConsumerGroupSession,
-) {
-	const shutdownTimeout = 5 * time.Second
-
-	done := make(chan struct{})
-	go func() {
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		h.logger.Info("Worker pool stopped successfully")
-	case <-time.After(shutdownTimeout):
-		h.logger.Warn("Worker pool stop timed out, forcing commit")
-	}
-	session.Commit()
-}
-
-func (h *consumerHandler) handleMessageAsync(
-	session sarama.ConsumerGroupSession,
-	claim sarama.ConsumerGroupClaim,
-	msg *sarama.ConsumerMessage,
-) {
-	m := msg
-	var err error
-
-	workerID := fmt.Sprintf("worker-%d", time.Now().UnixNano())
-
-	// Handle different types of messages
-	switch m.Topic {
-	case RETRY_TOPIC_10S, RETRY_TOPIC_1M, RETRY_TOPIC_5M:
-		h.logger.Debug("Handling retry message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
-		err = h.handleRetryMessage(session, m)
-	case DLQ:
-		h.logger.Debug("Handling DLQ message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
-		err = h.handleDLQMessage(session, m)
-	default:
-		h.logger.Debug("Handling regular message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value))
-		// Regular message processing
-		err = h.handlerFunc(context.Background(), m.Topic, m.Value)
-	}
-
-	if err != nil {
-		h.logger.Error("Error processing message", zap.String("worker_id", workerID), zap.String("topic", m.Topic), zap.String("header", fmt.Sprintf("%v", m.Headers)), zap.ByteString("body", m.Value), zap.Error(err))
-		// Only send to retry queue for regular messages and retry failures
-		if m.Topic != DLQ {
-			h.sendToRetryQueue(session, m, err)
-		}
-		session.MarkMessage(m, "error")
-		return
-	}
-
-	session.MarkMessage(m, "ok")
-}
-
-func (h *consumerHandler) ConsumeClaim(
-	session sarama.ConsumerGroupSession,
-	claim sarama.ConsumerGroupClaim,
-) error {
-	h.logger.Info("Starting message consumption", zap.String("topic", claim.Topic()))
-	for {
-		select {
-		case msg, ok := <-claim.Messages():
-			if !ok {
-				h.stopWorkerAndCommit(session)
-				return nil
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoff):
 			}
-			h.handleMessageAsync(session, claim, msg)
-		case <-h.exitSignalChannel:
-			h.logger.Info("Exit signal received, stopping consumer")
-			h.stopWorkerAndCommit(session)
-			return nil
 		}
+
+		if err := h.handlerFunc(ctx, message.Topic, message.Value); err != nil {
+			lastErr = err
+			continue
+		}
+
+		return nil
 	}
+
+	return fmt.Errorf("failed after %d retries: %w", maxRetries, lastErr)
+}
+
+type Consumer interface {
+	RegisterHandler(queueName string, handlerFunc HandlerFunc)
+	Start(ctx context.Context) error
+	Stop() error
+}
+
+type consumer struct {
+	saramaConsumer            sarama.ConsumerGroup
+	logger                    *zap.Logger
+	queueNameToHandlerFuncMap map[string]HandlerFunc
+	cancelFunc                context.CancelFunc
+	wg                        sync.WaitGroup
+	mu                        sync.RWMutex
+	running                   bool
 }
 
 func NewConsumer(
 	cfg *config.Config,
-	prod producer.MessageBroker,
 	logger *zap.Logger,
+	consumerID string,
 ) (Consumer, error) {
 	config := sarama.NewConfig()
 	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
@@ -329,48 +133,161 @@ func NewConsumer(
 	config.Consumer.Group.Heartbeat.Interval = 3 * time.Second
 	config.Consumer.MaxProcessingTime = 30 * time.Second
 	config.Consumer.Return.Errors = true
-	config.Consumer.Offsets.AutoCommit.Enable = false // Manual commit for better control
+	config.Consumer.Offsets.AutoCommit.Enable = false
 
-	saramaConsumer, err := sarama.NewConsumerGroup(cfg.Kafka.Address, cfg.Kafka.ClientID, config)
+	// Add version for compatibility
+	config.Version = sarama.V2_6_0_0
+
+	logger.Info("Creating Kafka consumer group",
+		zap.Strings("brokers", cfg.Kafka.Address),
+		zap.String("consumerID", consumerID))
+
+	saramaConsumer, err := sarama.NewConsumerGroup(cfg.Kafka.Address, consumerID, config)
 	if err != nil {
+		logger.Error("Failed to create consumer group",
+			zap.Strings("brokers", cfg.Kafka.Address),
+			zap.String("consumerID", consumerID),
+			zap.Error(err))
 		return nil, fmt.Errorf("failed to create consumer group: %w", err)
 	}
 
 	return &consumer{
 		saramaConsumer:            saramaConsumer,
-		prod:                      prod,
 		logger:                    logger,
 		queueNameToHandlerFuncMap: make(map[string]HandlerFunc),
 	}, nil
 }
 
-var ConsumerSet = wire.NewSet(NewConsumer)
-
 func (c *consumer) RegisterHandler(queueName string, handlerFunc HandlerFunc) {
-	c.logger.Info("Registering handler for queue", zap.String("queue", queueName), zap.String("handler", fmt.Sprintf("%T", handlerFunc)))
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.running {
+		c.logger.Warn("Cannot register handler while consumer is running",
+			zap.String("queue_name", queueName))
+		return
+	}
+
 	c.queueNameToHandlerFuncMap[queueName] = handlerFunc
+	c.logger.Info("Handler registered",
+		zap.String("queue_name", queueName))
 }
 
 func (c *consumer) Start(ctx context.Context) error {
-	exitSignalChannel := make(chan os.Signal, 1)
-	signal.Notify(exitSignalChannel, os.Interrupt)
+	c.mu.Lock()
+	if c.running {
+		c.mu.Unlock()
+		return fmt.Errorf("consumer already running")
+	}
+	c.running = true
+	c.mu.Unlock()
 
-	// Start consumers for regular topics
+	logger := log.LoggerWithContext(ctx, c.logger)
+
+	// Create a cancellable context
+	ctx, cancel := context.WithCancel(ctx)
+	c.cancelFunc = cancel
+
+	// Handle OS signals for graceful shutdown
+	exitSignalChannel := make(chan os.Signal, 1)
+	signal.Notify(exitSignalChannel, os.Interrupt, syscall.SIGTERM)
+
+	// Start error handler
+	go func() {
+		for err := range c.saramaConsumer.Errors() {
+			logger.Error("Consumer error", zap.Error(err))
+		}
+	}()
+
+	// Start consumers for each topic
 	for queueName, handlerFunc := range c.queueNameToHandlerFuncMap {
+		c.wg.Add(1)
 		go func(queueName string, handlerFunc HandlerFunc) {
-			c.logger.Info("Starting consumer for topic", zap.String("topic", queueName))
-			if err := c.saramaConsumer.Consume(
-				ctx,
-				[]string{queueName, RETRY_TOPIC_10S, RETRY_TOPIC_1M, RETRY_TOPIC_5M, DLQ},
-				newConsumerHandler(handlerFunc, exitSignalChannel, c.prod, c.logger),
-			); err != nil {
-				c.logger.Error("Failed to start consumer", zap.String("queue", queueName), zap.Error(err))
+			defer c.wg.Done()
+
+			logger.Info("Starting consumer for queue",
+				zap.String("queue_name", queueName))
+
+			handler := newConsumerHandler(handlerFunc, logger)
+
+			for {
+				// Check if context is cancelled
+				if ctx.Err() != nil {
+					logger.Info("Context cancelled, stopping consumer",
+						zap.String("queue_name", queueName))
+					return
+				}
+
+				// Consume messages
+				err := c.saramaConsumer.Consume(
+					ctx,
+					[]string{queueName},
+					handler,
+				)
+
+				if err != nil {
+					if ctx.Err() != nil {
+						// Context cancelled, exit gracefully
+						return
+					}
+
+					logger.Error("Failed to consume messages",
+						zap.String("queue_name", queueName),
+						zap.Error(err))
+
+					// Wait before retrying
+					select {
+					case <-ctx.Done():
+						return
+					case <-time.After(5 * time.Second):
+						continue
+					}
+				}
 			}
 		}(queueName, handlerFunc)
 	}
 
-	c.logger.Info("All consumers started, waiting for exit signal")
-	<-exitSignalChannel
-	c.logger.Info("Exit signal received, shutting down consumer")
-	return c.saramaConsumer.Close()
+	// Wait for signal or context cancellation
+	select {
+	case <-exitSignalChannel:
+		logger.Info("Received exit signal, shutting down...")
+		c.Stop()
+	case <-ctx.Done():
+		logger.Info("Context cancelled, shutting down...")
+		c.Stop()
+	}
+
+	// Wait for all goroutines to finish
+	c.wg.Wait()
+
+	c.mu.Lock()
+	c.running = false
+	c.mu.Unlock()
+
+	logger.Info("Consumer stopped successfully")
+	return nil
+}
+
+func (c *consumer) Stop() error {
+	c.mu.RLock()
+	if !c.running {
+		c.mu.RUnlock()
+		return nil
+	}
+	c.mu.RUnlock()
+
+	c.logger.Info("Stopping consumer...")
+
+	// Cancel context to stop all consumers
+	if c.cancelFunc != nil {
+		c.cancelFunc()
+	}
+
+	// Close the consumer group
+	if err := c.saramaConsumer.Close(); err != nil {
+		c.logger.Error("Error closing consumer", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

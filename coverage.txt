@@ -1,0 +1,9 @@
+github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server/usecase.go:34:	NewServerUseCase	100.0%
+github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server/usecase.go:48:	CreateServer		88.2%
+github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server/usecase.go:80:	DeleteServer		100.0%
+github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server/usecase.go:101:	ExportServer		69.2%
+github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server/usecase.go:154:	ImportServer		97.8%
+github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server/usecase.go:232:	UpdateServer		90.0%
+github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server/usecase.go:278:	ViewServer		100.0%
+github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server/usecase.go:290:	UpdateStatus		100.0%
+total:											(statements)		90.2%

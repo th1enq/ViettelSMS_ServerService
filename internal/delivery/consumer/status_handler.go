@@ -4,34 +4,31 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/google/wire"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/dto"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/usecase/server"
 	"go.uber.org/zap"
 )
 
-type HandleFunc interface {
+type StatusHandleFunc interface {
 	Handle(ctx context.Context, topic string, payload []byte) error
 }
 
-type handleFunc struct {
+type statusHandleFunc struct {
 	logger  *zap.Logger
 	usecase server.UseCase
 }
 
-func NewHandlerFunc(
+func NewStatusHandlerFunc(
 	logger *zap.Logger,
 	usecase server.UseCase,
-) HandleFunc {
-	return &handleFunc{
+) StatusHandleFunc {
+	return &statusHandleFunc{
 		logger:  logger,
 		usecase: usecase,
 	}
 }
 
-var HandlerFuncSet = wire.NewSet(NewHandlerFunc)
-
-func (h *handleFunc) Handle(ctx context.Context, topic string, payload []byte) error {
+func (h *statusHandleFunc) Handle(ctx context.Context, topic string, payload []byte) error {
 	h.logger.Info("Handling message", zap.String("topic", topic), zap.ByteString("payload", payload))
 
 	var msg dto.UpdateStatusMessage

@@ -5,9 +5,9 @@ import (
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/consumer"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/controller"
+	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/middleware"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/delivery/http/presenter"
-	consumer2 "github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/kafka/consumer"
-	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/kafka/producer"
+	consumerGroup "github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/kafka/consumer"
 	log "github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/logger"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/postgres"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/infrastucture/repository"
@@ -16,31 +16,52 @@ import (
 )
 
 func InitApp() (*Application, error) {
-	configConfig := config.LoadConfig()
-	logger, err := log.LoadLogger(configConfig)
+	config := config.LoadConfig()
+
+	logger, err := log.LoadLogger(config)
 	if err != nil {
 		return nil, err
 	}
-	dbEngine, err := postgres.NewPostgresDB(configConfig, logger)
+
+	db, err := postgres.NewPostgresDB(config, logger)
 	if err != nil {
 		return nil, err
 	}
-	serverRepository := repository.NewServerRepository(dbEngine)
-	xlsxService := service.NewExcelizeService(logger)
-	useCase := server.NewServerUseCase(serverRepository, xlsxService, logger)
-	presenterPresenter := presenter.NewPresenter()
-	controllerController := controller.NewController(useCase, logger, presenterPresenter)
-	httpServer := http.NewHttpServer(configConfig, controllerController, logger)
-	handleFunc := consumer.NewHandlerFunc(logger, useCase)
-	messageBroker, err := producer.NewBroker(configConfig, logger)
+
+	excelSrv := service.NewExcelizeService(logger)
+
+	repo := repository.NewServerRepository(db)
+
+	usecase := server.NewServerUseCase(
+		repo,
+		excelSrv,
+		logger,
+	)
+
+	presenter := presenter.NewPresenter()
+	middleware := middleware.NewJWTMiddleware(presenter, []byte(config.JWT.Secret))
+	controller := controller.NewController(usecase, logger, presenter)
+
+	httpServer := http.NewHttpServer(config, controller, middleware, logger)
+
+	statusConsumer, err := consumerGroup.NewConsumer(
+		config,
+		logger,
+		config.Consumer.StatusConsumer,
+	)
+
+	statusHandleFunc := consumer.NewStatusHandlerFunc(logger, usecase)
+
 	if err != nil {
 		return nil, err
 	}
-	consumerConsumer, err := consumer2.NewConsumer(configConfig, messageBroker, logger)
-	if err != nil {
-		return nil, err
-	}
-	root := consumer.NewRoot(logger, handleFunc, consumerConsumer)
-	application := NewApplication(httpServer, root, logger)
-	return application, nil
+
+	rootConsumer := consumer.NewRoot(
+		logger,
+		statusConsumer,
+		statusHandleFunc,
+	)
+
+	app := NewApplication(httpServer, rootConsumer, logger)
+	return app, nil
 }

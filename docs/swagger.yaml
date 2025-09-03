@@ -373,4 +373,10 @@ paths:
       summary: Import servers from Excel file
       tags:
       - server
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

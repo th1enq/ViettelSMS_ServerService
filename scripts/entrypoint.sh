@@ -2,7 +2,8 @@
 
 echo "Running migrations..."
 
-# Run migrations
-./migrate up
+go run ./cmd/migrate up
 
-exec ./main
+echo "Running server..."
+
+go run ./cmd/server/

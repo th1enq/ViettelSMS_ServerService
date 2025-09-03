@@ -32,6 +32,14 @@ type (
 		Address  []string
 		ClientID string
 	}
+
+	JWT struct {
+		Secret string
+	}
+
+	Consumer struct {
+		StatusConsumer string
+	}
 )
 
 type Config struct {
@@ -39,6 +47,8 @@ type Config struct {
 	Postgres Postgres
 	Logger   Logger
 	Kafka    Kafka
+	JWT      JWT
+	Consumer Consumer
 }
 
 func LoadConfig() *Config {
@@ -96,10 +106,23 @@ func LoadConfig() *Config {
 		ClientID: viper.GetString("KAFKA_CLIENT_ID"),
 	}
 
+	viper.SetDefault("JWT_SECRET", "mysecret")
+	jwtEnv := JWT{
+		Secret: viper.GetString("JWT_SECRET"),
+	}
+
+	// consumer env
+	viper.SetDefault("STATUS_CONSUMER_GROUP", "status-consumer-group")
+	consumerEnv := Consumer{
+		StatusConsumer: viper.GetString("STATUS_CONSUMER_GROUP"),
+	}
+
 	return &Config{
 		Server:   serverEnv,
 		Postgres: postgresEnv,
 		Logger:   loggerEnv,
 		Kafka:    kafkaEnv,
+		JWT:      jwtEnv,
+		Consumer: consumerEnv,
 	}
 }

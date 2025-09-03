@@ -16,12 +16,13 @@ const (
 
 type Server struct {
 	ServerID     string       `gorm:"primaryKey"`
-	ServerName   string       `gorm:"not null;unique"`
+	ServerName   string       `gorm:"not null;index;unique"`
 	IPv4         string       `gorm:"not null;unique"`
 	Status       ServerStatus `gorm:"not null;default:UNKNOWN"`
+	IntervalTime int          `gorm:"not null;default:5"`
 	Location     string
 	OS           string
-	IntervalTime int       `gorm:"not null;default:5"`
-	CreatedAt    time.Time `gorm:"autoCreateTime"`
-	DeletedAt    gorm.DeletedAt
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    gorm.DeletedAt `gorm:"index"`
 }

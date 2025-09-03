@@ -14,6 +14,8 @@ type (
 		Conflict(c *gin.Context, message string, err error)
 		InternalError(c *gin.Context, message string, err error)
 		NotFound(c *gin.Context, message string, err error)
+		Unauthorized(c *gin.Context, message string, err error)
+		Forbidden(c *gin.Context, message string, err error)
 
 		// Success responses
 		Created(c *gin.Context, message string, data interface{})
@@ -28,6 +30,22 @@ type (
 
 func NewPresenter() Presenter {
 	return &presenter{}
+}
+
+func (p *presenter) Unauthorized(c *gin.Context, message string, err error) {
+	c.JSON(http.StatusUnauthorized, response.NewErrorResponse(
+		response.CodeUnauthorized,
+		message,
+		err.Error(),
+	))
+}
+
+func (p *presenter) Forbidden(c *gin.Context, message string, err error) {
+	c.JSON(http.StatusForbidden, response.NewErrorResponse(
+		response.CodeForbidden,
+		message,
+		err.Error(),
+	))
 }
 
 func (p *presenter) InvalidRequest(c *gin.Context, message string, err error) {
@@ -63,7 +81,7 @@ func (p *presenter) Created(c *gin.Context, message string, data interface{}) {
 }
 
 func (p *presenter) Deleted(c *gin.Context, message string) {
-	c.JSON(http.StatusNoContent, response.NewSuccessResponse(
+	c.JSON(http.StatusOK, response.NewSuccessResponse(
 		response.CodeDeleted,
 		message,
 		nil,

@@ -3,6 +3,7 @@ package dto
 import (
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/domain/entity"
 )
 
@@ -57,6 +58,13 @@ type (
 		ServerID  string              `json:"server_id"`
 		Status    entity.ServerStatus `json:"status"`
 		Timestamp time.Time           `json:"timestamp"`
+	}
+
+	Claims struct {
+		Sub     uint     `json:"sub"`
+		Scopes  []string `json:"scopes"`
+		Blocked bool     `json:"blocked"`
+		jwt.RegisteredClaims
 	}
 )
 

@@ -50,6 +50,8 @@ func main() {
 		}
 	}()
 
+	goose.SetTableName("server_db_version")
+
 	if err := goose.Run(command, db, *dir, args[1:]...); err != nil {
 		log.Fatalf("migrate %v: %v", command, err)
 	}

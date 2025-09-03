@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	UPTIME_TOPIC = "server_heartbeat"
+	STATUS_UPDATE_TOPIC = "status_update"
 )
 
 type (
@@ -17,37 +17,37 @@ type (
 	}
 
 	root struct {
-		logger   *zap.Logger
-		consumer consumer.Consumer
-		handler  HandleFunc
+		logger            *zap.Logger
+		statusConsumer    consumer.Consumer
+		statusHandlerFunc StatusHandleFunc
 	}
 )
 
 func NewRoot(
 	logger *zap.Logger,
-	handler HandleFunc,
-	consumer consumer.Consumer,
+	statusConsumer consumer.Consumer,
+	statusHandlerFunc StatusHandleFunc,
 ) Root {
 	return &root{
-		logger:   logger,
-		consumer: consumer,
-		handler:  handler,
+		logger:            logger,
+		statusConsumer:    statusConsumer,
+		statusHandlerFunc: statusHandlerFunc,
 	}
 }
 
 func (r *root) Start(ctx context.Context) error {
 	r.logger.Info("Starting Kafka consumer...")
 
-	r.consumer.RegisterHandler(
-		UPTIME_TOPIC,
+	r.statusConsumer.RegisterHandler(
+		STATUS_UPDATE_TOPIC,
 		func(ctx context.Context, queueName string, payload []byte) error {
-			return r.handler.Handle(ctx, queueName, payload)
+			return r.statusHandlerFunc.Handle(ctx, queueName, payload)
 		},
 	)
 
 	r.logger.Info("Kafka consumer started, waiting for messages...")
 	go func() {
-		if err := r.consumer.Start(ctx); err != nil {
+		if err := r.statusConsumer.Start(ctx); err != nil {
 			r.logger.Error("Failed to start consumer", zap.Error(err))
 		}
 	}()
