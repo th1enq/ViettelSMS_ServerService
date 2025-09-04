@@ -9,7 +9,7 @@
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost
+// @host server.localhost
 
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -20,6 +20,7 @@ package main
 import (
 	"context"
 
+	_ "github.com/th1enq/ViettelSMS_ServerService/docs"
 	"github.com/th1enq/ViettelSMS_ServerService/internal/application"
 )
 

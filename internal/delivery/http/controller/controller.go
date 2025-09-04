@@ -44,7 +44,7 @@ func NewController(
 // @Failure 409 {object} response.APIResponse
 // @Failure 500 {object} response.APIResponse
 // @Security BearerAuth
-// @Router /api/v1/server [post]
+// @Router /server [post]
 func (s *Controller) Create(c *gin.Context) {
 	s.logger.Info("Create server request received")
 
@@ -85,7 +85,7 @@ func (s *Controller) Create(c *gin.Context) {
 // @Failure 409 {object} response.APIResponse
 // @Failure 500 {object} response.APIResponse
 // @Security BearerAuth
-// @Router /api/v1/server/{id} [delete]
+// @Router /server/{id} [delete]
 func (s *Controller) Delete(c *gin.Context) {
 	s.logger.Info("Delete server request received")
 	serverID := c.Param("id")
@@ -121,7 +121,7 @@ func (s *Controller) Delete(c *gin.Context) {
 // @Failure 409 {object} response.APIResponse
 // @Failure 500 {object} response.APIResponse
 // @Security BearerAuth
-// @Router /api/v1/server/{id} [put]
+// @Router /server/{id} [put]
 func (s *Controller) Update(c *gin.Context) {
 	s.logger.Info("Update server request received")
 
@@ -170,7 +170,7 @@ func (s *Controller) Update(c *gin.Context) {
 // @Failure 400 {object} response.APIResponse
 // @Failure 500 {object} response.APIResponse
 // @Security BearerAuth
-// @Router /api/v1/server [get]
+// @Router /server [get]
 func (s *Controller) View(c *gin.Context) {
 	s.logger.Info("View server request received")
 
@@ -218,7 +218,7 @@ func (s *Controller) View(c *gin.Context) {
 // @Failure 400 {object} response.APIResponse
 // @Failure 500 {object} response.APIResponse
 // @Security BearerAuth
-// @Router /api/v1/server/import [post]
+// @Router /server/import [post]
 func (s *Controller) Import(c *gin.Context) {
 	s.logger.Info("Import server request received")
 
@@ -270,7 +270,7 @@ func (s *Controller) Import(c *gin.Context) {
 // @Failure 400 {object} response.APIResponse
 // @Failure 500 {object} response.APIResponse
 // @Security BearerAuth
-// @Router /api/v1/server/export [get]
+// @Router /server/export [get]
 func (s *Controller) Export(c *gin.Context) {
 	s.logger.Info("Export server request received")
 

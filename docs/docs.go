@@ -24,7 +24,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/server": {
+        "/server": {
             "get": {
                 "security": [
                     {
@@ -169,7 +169,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/server/export": {
+        "/server/export": {
             "get": {
                 "security": [
                     {
@@ -251,7 +251,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/server/import": {
+        "/server/import": {
             "post": {
                 "security": [
                     {
@@ -312,7 +312,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/server/{id}": {
+        "/server/{id}": {
             "put": {
                 "security": [
                     {
@@ -506,6 +506,9 @@ const docTemplate = `{
         "dto.ServerResponse": {
             "type": "object",
             "properties": {
+                "id": {
+                    "type": "integer"
+                },
                 "interval_time": {
                     "type": "integer"
                 },
@@ -606,7 +609,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost",
+	Host:             "server.localhost",
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Server Management Service",
