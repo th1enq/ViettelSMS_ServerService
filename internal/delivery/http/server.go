@@ -56,18 +56,16 @@ func (s *server) RegisterRoutes() *gin.Engine {
 		})
 	})
 
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
 	server := router.Group("/server")
-	server.Use(s.middleware.RequireAuth())
 	{
-		server.POST("/", s.controller.Create)
-		server.DELETE("/:id", s.middleware.RequireScope("server:delete"), s.controller.Delete)
-		server.PUT("/:id", s.middleware.RequireScope("server:update"), s.controller.Update)
-		server.GET("/", s.middleware.RequireScope("server:view"), s.controller.View)
+		server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		server.POST("/", s.middleware.RequireAuth(), s.controller.Create)
+		server.DELETE("/:id", s.middleware.RequireAuth(), s.middleware.RequireScope("server:delete"), s.controller.Delete)
+		server.PUT("/:id", s.middleware.RequireAuth(), s.middleware.RequireScope("server:update"), s.controller.Update)
+		server.GET("/", s.middleware.RequireAuth(), s.middleware.RequireScope("server:view"), s.controller.View)
 
-		server.POST("/import", s.middleware.RequireScope("server:import"), s.controller.Import)
-		server.GET("/export", s.middleware.RequireScope("server:export"), s.controller.Export)
+		server.POST("/import", s.middleware.RequireAuth(), s.middleware.RequireScope("server:import"), s.controller.Import)
+		server.GET("/export", s.middleware.RequireAuth(), s.middleware.RequireScope("server:export"), s.controller.Export)
 	}
 
 	return router

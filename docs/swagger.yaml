@@ -98,7 +98,7 @@ definitions:
       message:
         type: string
     type: object
-host: server.localhost
+host: localhost
 info:
   contact:
     email: support@swagger.io

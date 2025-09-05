@@ -14,7 +14,7 @@
         },
         "version": "1.0"
     },
-    "host": "server.localhost",
+    "host": "localhost",
     "paths": {
         "/server": {
             "get": {
